@@ -22,7 +22,7 @@ public class App {
 
                                 new BankAccount(100000, "Transport Enterprise", null), generalKey, alphaBank);
 
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < 100; i++) {
                         Driver driver = new Driver("Driver" + i, new BankAccount(200, "Driver 1", null), generalKey,
                                         fuelStation,
                                         alphaBank);
@@ -31,9 +31,9 @@ public class App {
                         // mudar o numero do for
                 }
 
-                for (int i = 0; i < 4; i++) { // aqui vai ser 900, coloquei menos para fins de teste
+                for (int i = 0; i < 900; i++) { // aqui vai ser 900, coloquei menos para fins de teste
                         String routeId = Integer.toString(i);
-                        mobilityCompany.addRouteToQueue(new Route("\\sim\\sim-main\\data\\dados2.xml", routeId));
+                        mobilityCompany.addRouteToQueue(new Route("sim-main\\data\\dados2.xml", routeId));
                         Thread.sleep(100);
                         // adiciona 3 rotas à fila da empresa
                 }
