@@ -135,6 +135,24 @@
         <artifactId>jcommon</artifactId>
         <version>1.0.23</version> <!-- Use a versão mais recente, se disponível -->
     </dependency>
+    <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-math3</artifactId>
+        <version>3.6.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.ejml</groupId>
+      <artifactId>core</artifactId>
+      <version>0.30</version>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.ejml</groupId>
+      <artifactId>simple</artifactId>
+      <version>0.30</version>
+    </dependency>
 
   </dependencies>
 

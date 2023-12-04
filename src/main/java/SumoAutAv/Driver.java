@@ -2,6 +2,7 @@ package SumoAutAv;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.crypto.SecretKey;
 
@@ -26,6 +27,17 @@ public class Driver extends Thread {
     private FuelStation fuelStation;
     private AlphaBank alphaBank;
 
+    private ArrayList<double[]> reconciledSpeedsArray = new ArrayList<double[]>();
+    private ArrayList<double[]> reconciledTimesArray = new ArrayList<double[]>();
+
+    public ArrayList<double[]> getReconciledTimesArray() {
+        return reconciledTimesArray;
+    }
+
+    public ArrayList<double[]> getReconciledSpeedsArray() {
+        return reconciledSpeedsArray;
+    }
+
     public Driver(String name, BankAccount account, SecretKey key, FuelStation fuelStation, AlphaBank alphaBank) {
         this.fuelStation = fuelStation;
         this.alphaBank = alphaBank;
@@ -33,10 +45,10 @@ public class Driver extends Thread {
         this.account = account;
         this.key = key;
         createDriverCarThread();
-        Chart chart = new Chart(name, this.car);
-        chart.pack();
-        RefineryUtilities.centerFrameOnScreen(chart);
-        chart.setVisible(true);
+        // Chart chart = new Chart(name, this.car);
+        // chart.pack();
+        // RefineryUtilities.centerFrameOnScreen(chart);
+        // chart.setVisible(true);
     }
 
     public String getDriversName() {
@@ -73,6 +85,7 @@ public class Driver extends Thread {
                         sumo); // cria um serviço de transporte que irá passar os passos do sumo
                 transportService.start(); // inicia o serviço de transporte
                 car.setSumo(sumo); // seta o sumo do carro atualizado
+                car.setRoute(route);
                 car.setCarOwner(this); // seta o dono do carro
 
                 try {
@@ -81,14 +94,23 @@ public class Driver extends Thread {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+
                 car.start(); // inicia o carro
                 car.startCar(); // notifica o carro para sair do wait
                 try {
                     car.join(); // espera o carro terminar
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+
+                double[] reconciledTimes = TransportService.doReconciliation(this.car.getTimeMeasurements(),
+                        this.car.getEstimateTimes());
+                double[] reconciledSpeeds = car.getReconciledSpeeds(reconciledTimes);
+                reconciledTimesArray.add(Arrays.copyOfRange(reconciledTimes, 1, reconciledTimes.length - 1));
+                reconciledSpeedsArray.add(reconciledSpeeds);
+
                 RoutesInProgress.remove(route); // remove a rota de em progresso
                 RoutesHistory.add(route); // adiciona a rota ao histórico
                 System.out.println("Driver " + name + " finished route " + route.getIdItinerary()); // avisa que o
@@ -178,6 +200,9 @@ public class Driver extends Thread {
 
         copiedDriver.RoutesHistory = this.RoutesHistory;
         copiedDriver.car = this.car.copyCar();
+
+        copiedDriver.reconciledSpeedsArray = this.reconciledSpeedsArray;
+        copiedDriver.reconciledTimesArray = this.reconciledTimesArray;
 
         return copiedDriver;
     }

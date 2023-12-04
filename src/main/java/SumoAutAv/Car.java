@@ -2,6 +2,7 @@ package SumoAutAv;
 
 import java.util.ArrayList;
 
+import de.tudresden.sumo.cmd.Simulation;
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.objects.SumoColor;
 import io.sim.Auto;
@@ -13,6 +14,17 @@ public class Car extends Auto { // extende a classe Auto para ter acesso aos dad
     private volatile boolean isRunning = false;
     private boolean isRefueling = false;
     private double carTank;
+
+    private Route route;
+    private String currentRoadID = "";
+    private String newRoute = "";
+    private double previousTime = 0.0;
+    private ArrayList<Double> timeMeasurements = new ArrayList<Double>();
+    private ArrayList<Double> estimateTimes = new ArrayList<Double>();
+    private ArrayList<String> currentEdges = new ArrayList<String>();
+    double simTime = 0.0;
+    private ArrayList<Double> edgesDistances = new ArrayList<Double>();
+    private double distanceTraveled = 0.0;
 
     public Car(boolean _on_off, String _idAuto, SumoColor _colorAuto, String _driverID, SumoTraciConnection _sumo,
             long _acquisitionRate, int _fuelType, int _fuelPreferential, double _fuelPrice, int _personCapacity,
@@ -30,6 +42,27 @@ public class Car extends Auto { // extende a classe Auto para ter acesso aos dad
 
     @Override
     public void run() {
+
+        currentEdges.clear();
+        currentEdges = getRouteEdges();
+
+        new Thread(() -> {
+            while (!this.getSumo().isClosed()) {
+                try {
+                    checkRouteId();
+                    Thread.sleep(50);
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            if (this.getSumo().isClosed()) {
+                timeMeasurements.add(simTime - previousTime);
+                getDistanceTraveledAtEdge();
+                printDistancesMeasurements();
+                printTimesMeasurements();
+            }
+        }).start();
 
         while (this.isOn_off()) { // loop infinito
             synchronized (this) {
@@ -65,16 +98,11 @@ public class Car extends Auto { // extende a classe Auto para ter acesso aos dad
 
     private void updateTank() {
         try {
-            double fuelConsumption = (double) getSumo().do_job_get(Vehicle.getFuelConsumption(this.getIdAuto())) / 1000; // pega
-                                                                                                                         // o
-                                                                                                                         // consumo
-                                                                                                                         // de
-                                                                                                                         // combustível
-                                                                                                                         // do
-                                                                                                                         // carro
+            double fuelConsumption = (double) getSumo().do_job_get(Vehicle.getFuelConsumption(this.getIdAuto()));
+            fuelConsumption = (fuelConsumption * 0.001) / 0.74; // convert to ml
+            fuelConsumption = fuelConsumption / 1000; // convert to liters
             if (fuelConsumption > 0) {
-
-                carTank -= fuelConsumption / 2;
+                carTank -= fuelConsumption;
                 System.out.println("Car " + this.getIdAuto() + " tank: " + carTank);
             }
         } catch (Exception e) {
@@ -148,6 +176,112 @@ public class Car extends Auto { // extende a classe Auto para ter acesso aos dad
         }
 
         return car;
+    }
+
+    private void printDistancesMeasurements() {
+        edgesDistances.remove(0);
+        System.out.println("Car " + this.getIdAuto() + " total distance traveled: " + distanceTraveled);
+        System.out.println("Car " + this.getIdAuto() + " distances measurements: ");
+        for (Double distance : edgesDistances) {
+            System.out.println(distance);
+        }
+    }
+
+// printa o tempo total gasto pelo carro e os tempos gastos em cada aresta
+    public void printTimesMeasurements() {
+        simTime -= timeMeasurements.get(0);
+        timeMeasurements.set(0, simTime);
+        System.out.println("Car " + this.getIdAuto() + " total time spent: " + simTime);
+        System.out.println("Car " + this.getIdAuto() + " times measurements: ");
+        for (Double time : timeMeasurements) {
+            System.out.println(time);
+        }
+    }
+
+    // retorna as arestas da rota passadas ao sumo
+    public ArrayList<String> getRouteEdges() {
+        ArrayList<String> edges = new ArrayList<String>();
+        String[] aux = this.route.getItinerary();
+
+        for (String e : aux[1].split(" ")) {
+            edges.add(e);
+        }
+        return edges;
+    }
+
+    // Calcula e retorna as velocidades reconciliadas
+    public double[] getReconciledSpeeds(double[] time) {
+        double[] speeds = new double[time.length - 2];
+        for (int i = 1; i < time.length - 1; i++) {
+            speeds[i - 1] = edgesDistances.get(i - 1) / time[i];
+        }
+
+        System.out.println("Car " + this.getIdAuto() + " reconciled speeds: ");
+        for (Double speed : speeds) {
+            System.out.println(speed);
+        }
+        return speeds;
+    }
+
+    // retorna as medições de tempo em cada Edge
+    public ArrayList<Double> getTimeMeasurements() {
+        return timeMeasurements;
+    }
+
+    // verifica se o carro mudou de Edge, para calcular o tempo e distancia de cada
+    // segmento
+    public void checkRouteId() {
+        if (this.getSumo().isClosed()) {
+            return;
+        }
+
+        try {
+            currentRoadID = (String) this.getSumo().do_job_get(Vehicle.getRoadID(this.getIdAuto()));
+            simTime = (double) this.getSumo().do_job_get(Simulation.getTime());
+            distanceTraveled = (double) this.getSumo().do_job_get(Vehicle.getDistance(this.getIdAuto()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (!currentRoadID.equals(newRoute) && currentEdges.contains(currentRoadID)) {
+            try {
+                double time = simTime - previousTime;
+                previousTime = simTime;
+                newRoute = currentRoadID;
+                timeMeasurements.add(time);
+                getDistanceTraveledAtEdge();
+                System.out.println("Time: " + time);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    // adiciona a distancia percorrida na aresta atual ao vetor de distancias
+    public void getDistanceTraveledAtEdge() {
+        double distanceSum = 0.0;
+        for (Double distance : edgesDistances) {
+            distanceSum += distance;
+        }
+        edgesDistances.add(distanceTraveled - distanceSum);
+    }
+
+    public ArrayList<Double> getEdgesDistances() {
+        return edgesDistances;
+    }
+
+    public ArrayList<Double> getEstimateTimes() {
+        return estimateTimes;
+    }
+
+    public void setEstimateTimes(ArrayList<Double> estimateTimes) {
+        this.estimateTimes = estimateTimes;
+    }
+
+    public void setRoute(Route route) {
+        this.route = route;
     }
 
 }

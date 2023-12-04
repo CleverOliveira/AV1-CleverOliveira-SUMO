@@ -1,56 +1,58 @@
 package SumoAutAv;
 
-import java.io.IOException;
-
 import javax.crypto.SecretKey;
-
-import io.sim.EnvSimulator;
-import it.polito.appeal.traci.SumoTraciConnection;
 
 public class App {
         public static void main(String[] args) throws Exception {
 
-                SecretKey generalKey = EncryptionUtil.generateSecretKey(); // gera uma chave para criptografia
+                SecretKey generalKey = EncryptionUtil.generateSecretKey();
 
-                FuelStation fuelStation = new FuelStation(new BankAccount(1000000.0, "Fuel Station", null)); // cria um
-                                                                                                             // posto de
-                                                                                                             // gasolina
-                AlphaBank alphaBank = new AlphaBank(generalKey); // cria um banco
+                FuelStation fuelStation = new FuelStation(new BankAccount(1000000.0, "Fuel Station", null));
+                AlphaBank alphaBank = new AlphaBank(generalKey);
 
-                MobilityCompany mobilityCompany = new MobilityCompany("Transport Enterprise", 1000000.0, // cria uma
-                                                                                                         // empresa
-
+                MobilityCompany mobilityCompany = new MobilityCompany("Transport Enterprise", 1000000.0,
                                 new BankAccount(100000, "Transport Enterprise", null), generalKey, alphaBank);
-
-                for (int i = 0; i < 100; i++) {
-                        Driver driver = new Driver("Driver" + i, new BankAccount(200, "Driver 1", null), generalKey,
-                                        fuelStation,
-                                        alphaBank);
-                        mobilityCompany.addDriver(driver);
-                        alphaBank.addAccount(driver.getAccount()); // adiciona 3 motoristas à empresa, para 100 apenas
-                        // mudar o numero do for
-                }
-
-                for (int i = 0; i < 900; i++) { // aqui vai ser 900, coloquei menos para fins de teste
-                        String routeId = Integer.toString(i);
+                Driver driver1 = new Driver("Driver 1", new BankAccount(200, "Driver 1", null), generalKey, fuelStation,
+                                alphaBank);
+                // Driver driver2 = new Driver("Driver 2", new BankAccount(200, "Driver 2",
+                // null), generalKey, fuelStation,
+                // alphaBank);
+                // Driver driver3 = new Driver("Driver 3", new BankAccount(200, "Driver 3",
+                // null), generalKey, fuelStation,
+                // alphaBank);
+                // Driver driver4 = new Driver("Driver 4", new BankAccount(200, "Driver 3",
+                // null), generalKey, fuelStation,
+                // alphaBank);
+                // Driver driver5 = new Driver("Driver 5", new BankAccount(200, "Driver 3",
+                // null), generalKey, fuelStation,
+                // alphaBank);
+                // Driver driver6 = new Driver("Driver 6", new BankAccount(200, "Driver 3",
+                // null), generalKey, fuelStation,
+                // alphaBank);
+                for (int i = 0; i < 3; i++) {
+                        String routeId = Integer.toString(0);
                         mobilityCompany.addRouteToQueue(new Route("sim-main\\data\\dados2.xml", routeId));
                         Thread.sleep(100);
-                        // adiciona 3 rotas à fila da empresa
                 }
 
-                alphaBank.addAccount(mobilityCompany.getAccount()); // adiciona a conta da empresa ao banco
-                alphaBank.addAccount(fuelStation.getAccount()); // adiciona a conta do posto de gasolina ao banco
+                mobilityCompany.addDriver(driver1);
+                // mobilityCompany.addDriver(driver2);
+                // mobilityCompany.addDriver(driver3);
+                // mobilityCompany.addDriver(driver4);
+                // mobilityCompany.addDriver(driver5);
+                // mobilityCompany.addDriver(driver6);
 
-                mobilityCompany.start(); // inicia a empresa
-                mobilityCompany.join(); // espera a empresa terminar
-                System.out.println("Mobility company closed"); // avisa que a empresa terminou
+                alphaBank.addAccount(driver1.getAccount());
+                // alphaBank.addAccount(driver2.getAccount());
+                // alphaBank.addAccount(driver3.getAccount());
+                alphaBank.addAccount(mobilityCompany.getAccount());
+                alphaBank.addAccount(fuelStation.getAccount());
 
-                mobilityCompany.generateReportCSV(); // gera o relatório da empresa
-
-                /* SUMO */
-
-                // EnvSimulator env = new EnvSimulator();
-                // env.start();
+                mobilityCompany.start();
+                mobilityCompany.join();
+                MathUtils.calcularDadosEstatisticos(driver1.getReconciledSpeedsArray(),
+                                driver1.getReconciledTimesArray(), 0,
+                                driver1.getCar().getEstimateTimes());
 
         }
 }

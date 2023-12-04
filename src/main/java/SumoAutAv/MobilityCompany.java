@@ -57,7 +57,7 @@ public class MobilityCompany extends Thread {
 
     @Override
     public void run() {
-
+        double numberOfRoutes = routesQueue.size();
         while (!routesCompleted) { // loop infinito até todas as rotas serem completadas
             if (routesQueue.size() > 0 && retrieveFreeDriver() != null) { // se a fila de rotas não estiver vazia e
                                                                           // houver motorista disponível
@@ -95,6 +95,11 @@ public class MobilityCompany extends Thread {
 
                 }).start();
 
+            }
+
+            if (routesHistory.size() == numberOfRoutes) {
+                System.out.println("Mobility Company " + name + " finished all routes");
+                break;
             }
 
             try {

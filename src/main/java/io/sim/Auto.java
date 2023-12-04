@@ -2,6 +2,7 @@ package io.sim;
 
 import de.tudresden.sumo.cmd.Vehicle;
 import java.util.ArrayList;
+import java.util.Random;
 
 import it.polito.appeal.traci.SumoTraciConnection;
 import de.tudresden.sumo.objects.SumoColor;
@@ -194,8 +195,11 @@ public class Auto extends Thread {
 				// "getSpeedDeviation = " + (double)
 				// sumo.do_job_get(Vehicle.getSpeedDeviation(this.idAuto)));
 
-				sumo.do_job_set(Vehicle.setSpeedMode(this.idAuto, 0));
-				sumo.do_job_set(Vehicle.setSpeed(this.idAuto, 6.95));
+				Random rnd = new Random();
+				// sumo.do_job_set(Vehicle.setSpeedMode(this.idAuto, 0));
+				double speed = rnd.nextInt(10) + 10;
+				// System.out.println("speed = " + speed);
+				sumo.do_job_set(Vehicle.setSpeed(this.idAuto, speed));
 
 				// System.out.println("getPersonNumber = " +
 				// sumo.do_job_get(Vehicle.getPersonNumber(this.idAuto)));
